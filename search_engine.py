@@ -3,9 +3,10 @@
 from utils.indexing import find_text_files, build_inverted_index
 from utils.query_suggestion import suggest_corrections
 from utils.ranking import rank_results
+from utils.graph import WordGraph
 
 
-def search(inverted_index, query, vocabulary, cache, proximity=1):
+def search(inverted_index, query, vocabulary, cache, word_graph, proximity=1):
     words = query.lower().split()
     if not words:
         print("Please enter a valid query.")
@@ -15,8 +16,16 @@ def search(inverted_index, query, vocabulary, cache, proximity=1):
     missing_words = [word for word in words if word not in vocabulary]
 
     if not missing_words:
-        # Proceed with normal search (existing logic)
+        # Proceed with normal search
         perform_search(inverted_index, words, proximity)
+        # Suggest related queries
+        related = set()
+        for word in words:
+            related_words = word_graph.get_related_words(word)
+            related.update(related_words)
+        if related:
+            print("Related queries:")
+            print(", ".join(related))
     else:
         # Suggest corrections
         suggestions = suggest_corrections(words, vocabulary, cache)
@@ -26,7 +35,7 @@ def search(inverted_index, query, vocabulary, cache, proximity=1):
 
         user_input = input("Press 'y' to search with the suggested query, or any other key to skip: ").strip().lower()
         if user_input == 'y':
-            search(inverted_index, corrected_query, vocabulary, cache, proximity)
+            search(inverted_index, corrected_query, vocabulary, cache, word_graph, proximity)
         else:
             print("No results found.")
 
@@ -65,13 +74,16 @@ def main():
         text_files = find_text_files(root_dir)
         inverted_index = build_inverted_index(text_files)
 
+        # Build the word relationship graph
+        word_graph = WordGraph()
+        word_graph.build_graph(inverted_index)
+
         print("Welcome to the Custom Search Engine!")
         print("You can search for words or phrases.")
         print("Type 'exit' to quit the search engine.")
 
-        vocabulary = set(inverted_index.keys()) #=-> Build a vocabulary of all indexed words
-        cache = {} 
-
+        vocabulary = set(inverted_index.keys())  # Build a vocabulary of all indexed words
+        cache = {}
 
         while True:
             query = input("\nEnter your search query: ").strip()
@@ -81,7 +93,7 @@ def main():
             elif not query:
                 print("Please enter a non-empty query.")
                 continue
-            search(inverted_index, query, vocabulary, cache)
+            search(inverted_index, query, vocabulary, cache, word_graph)
     except KeyboardInterrupt:
         print("\nSearch engine interrupted by user. Goodbye!")
     except Exception as e:
