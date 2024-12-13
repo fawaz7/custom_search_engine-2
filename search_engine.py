@@ -1,13 +1,28 @@
 # search_engine.py
-
+import re
 from utils.indexing import find_text_files, build_inverted_index
 from utils.query_suggestion import suggest_corrections
 from utils.ranking import rank_results
 from utils.graph import WordGraph
 
 
+
+def sanitize_query(query):
+    """
+    Remove invalid characters from the query.
+    Only allow alphanumeric characters and spaces.
+    """
+    return re.sub(r'[^\w\s]', '', query.lower())
+
 def search(inverted_index, query, vocabulary, cache, word_graph, proximity=1):
-    words = query.lower().split()
+    # Sanitize the input query
+    sanitized_query = sanitize_query(query)
+    
+    if not sanitized_query:
+        print("Invalid query. Please enter a valid search term.")
+        return
+
+    words = sanitized_query.split()
     if not words:
         print("Please enter a valid query.")
         return
@@ -32,7 +47,6 @@ def search(inverted_index, query, vocabulary, cache, word_graph, proximity=1):
         corrected_query = ' '.join(suggestions)
         print(f"No exact match found for '{query}'.")
         print(f"Did you mean: '{corrected_query}'?")
-
         user_input = input("Press 'y' to search with the suggested query, or any other key to skip: ").strip().lower()
         if user_input == 'y':
             search(inverted_index, corrected_query, vocabulary, cache, word_graph, proximity)
@@ -52,11 +66,11 @@ def perform_search(inverted_index, words, proximity):
 
     if common_results:
         ranked_results = rank_results(common_results, inverted_index, words)
-        print(f"Results for '{' '.join(words)}':")
-        for file_path, details in ranked_results:
-            print(f"File: {file_path}")
+        print(f"Results for '{' '.join(words)}':\n")
+        for i, (file_path, details) in enumerate(ranked_results, 1):
+            print(f"{i}. File: {file_path}")
             print(f"Lines: {', '.join(map(str, sorted(details['lines'])))}")
-            print(f"Number of Occurrences: {details['score']}")
+            print(f"Number of Occurrences: {details['score']}\n")
     else:
         print(f"No documents contain all the words in '{' '.join(words)}'.")
 
@@ -70,7 +84,7 @@ def check_proximity(positions_list, proximity):
 
 def main():
     try:
-        root_dir = 'data/'
+        root_dir = 'data\\'
         text_files = find_text_files(root_dir)
         inverted_index = build_inverted_index(text_files)
 

@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from itertools import islice
+from utils.indexing import stopwords  # Ensure you have a stopword list in utils/indexing.py
 
 class WordGraph:
     def __init__(self):
@@ -22,16 +23,19 @@ class WordGraph:
         file_line_map = defaultdict(lambda: defaultdict(list))  # file -> line -> list of positions and words
 
         for word, occurrences in inverted_index.items():
+            word_lower = word.lower()
+            if word_lower in stopwords:
+                continue
             for loc in occurrences:
                 file_path, line_num, pos = loc
-                file_line_map[file_path][line_num].append((pos, word))
+                file_line_map[file_path][line_num].append((pos, word_lower))  # Use lowercased words
 
         # Iterate through each file and line to find co-occurring words
         for file_path, lines in file_line_map.items():
             for line_num, word_positions in lines.items():
                 # Sort words in the line based on position
                 sorted_words = sorted(word_positions, key=lambda x: x[0])
-                words_in_line = [word for pos, word in sorted_words]
+                words_in_line = [word for pos, word in sorted_words if word not in stopwords]
 
                 # Slide a window over the words to find co-occurrences
                 for i in range(len(words_in_line)):
@@ -41,8 +45,9 @@ class WordGraph:
                         if word1 != word2:
                             self.add_cooccurrence(word1, word2)
 
-    def get_related_words(self, word, top_n=5):
-        if word not in self.graph:
-            return []
-        related = sorted(self.graph[word].items(), key=lambda item: item[1], reverse=True)
-        return [w for w, count in related[:top_n]]
+    def get_related_words(self, word):
+        """
+        Get a list of words related to the given word.
+        """
+        word = word.lower()
+        return list(self.graph[word].keys())
