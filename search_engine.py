@@ -1,4 +1,7 @@
 # search_engine.py
+#Fawaz Al-Ghzawi
+# 2020901160
+
 import re
 from utils.indexing import find_text_files, build_inverted_index
 from utils.query_suggestion import suggest_corrections
