@@ -2,6 +2,7 @@
 
 from utils.indexing import find_text_files, build_inverted_index
 from utils.query_suggestion import suggest_corrections
+from utils.ranking import rank_results
 
 
 def search(inverted_index, query, vocabulary, cache, proximity=1):
@@ -30,11 +31,6 @@ def search(inverted_index, query, vocabulary, cache, proximity=1):
             print("No results found.")
 
 def perform_search(inverted_index, words, proximity):
-    # Existing search logic (adjusted as needed)
-    # This code assumes the proximity search functionality is implemented
-    # ... (Insert your existing search code here)
-
-    # For demonstration, here's a simplified version:
     results = []
     for word in words:
         if word in inverted_index:
@@ -43,13 +39,15 @@ def perform_search(inverted_index, words, proximity):
             print(f"No results found for '{word}'.")
             return
 
-    # Find common documents containing all words
     common_results = set.intersection(*results)
 
     if common_results:
+        ranked_results = rank_results(common_results, inverted_index, words)
         print(f"Results for '{' '.join(words)}':")
-        for file_path, line_num in common_results:
-            print(f"File: {file_path}, Line: {line_num}")
+        for file_path, details in ranked_results:
+            print(f"File: {file_path}")
+            print(f"Lines: {', '.join(map(str, sorted(details['lines'])))}")
+            print(f"Number of Occurrences: {details['score']}")
     else:
         print(f"No documents contain all the words in '{' '.join(words)}'.")
 
@@ -86,8 +84,8 @@ def main():
             search(inverted_index, query, vocabulary, cache)
     except KeyboardInterrupt:
         print("\nSearch engine interrupted by user. Goodbye!")
-    # except Exception as e:
-    #     print(f"An unexpected error occurred: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 if __name__ == '__main__':
     main()
